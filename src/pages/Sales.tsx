@@ -69,28 +69,52 @@ export default function Sales() {
   const loadSales = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('sales')
-        .select(
-          `
-          *,
-          products (
-            name,
-            product_code
-          )
-        `
-        )
-        .order('sale_date', { ascending: false })
-        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // 페이지네이션으로 모든 데이터 가져오기
+      let allData: any[] = [];
+      let start = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('sales')
+          .select(
+            `
+            *,
+            products (
+              name,
+              product_code
+            )
+          `
+          )
+          .order('sale_date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .range(start, start + batchSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          console.log(`📊 로딩 중... ${allData.length}건`);
+        }
+
+        // 더 이상 데이터가 없으면 종료
+        if (!data || data.length < batchSize) {
+          hasMore = false;
+        } else {
+          start += batchSize;
+        }
+      }
+
+      console.log(`✅ 판매 데이터 로드 완료: ${allData.length}건`);
 
       // 카드사 및 간편결제사 정보를 별도로 조회
-      if (data && data.length > 0) {
-        const cardCompanyIds = data
+      if (allData && allData.length > 0) {
+        const cardCompanyIds = allData
           .filter(s => s.card_company_id)
           .map(s => s.card_company_id);
-        const easyPayCompanyIds = data
+        const easyPayCompanyIds = allData
           .filter(s => s.easy_pay_company_id)
           .map(s => s.easy_pay_company_id);
 
@@ -117,7 +141,7 @@ export default function Sales() {
         const cardCompanyMap = new Map(cardCompanies.map(c => [c.id, c]));
         const easyPayCompanyMap = new Map(easyPayCompanies.map(e => [e.id, e]));
 
-        const enrichedData = data.map(sale => ({
+        const enrichedData = allData.map(sale => ({
           ...sale,
           card_companies: sale.card_company_id ? cardCompanyMap.get(sale.card_company_id) : null,
           easy_pay_companies: sale.easy_pay_company_id ? easyPayCompanyMap.get(sale.easy_pay_company_id) : null,
@@ -125,7 +149,7 @@ export default function Sales() {
 
         setSales(enrichedData);
       } else {
-        setSales(data || []);
+        setSales(allData || []);
       }
     } catch (error) {
       console.error('판매 데이터 로드 실패:', error);
@@ -204,8 +228,33 @@ export default function Sales() {
   });
 
   // 통계 계산
-  const totalRevenue = sortedSales.reduce((sum, sale) => sum + sale.total_amount, 0);
-  const totalQuantity = sortedSales.reduce((sum, sale) => sum + sale.quantity, 0);
+  // 영수증별로 그룹핑하여 판매/반품 구분
+  const receiptGroups = new Map<string, Sale[]>();
+  sortedSales.forEach(s => {
+    if (!s.receipt_number) return;
+    const key = `${s.sale_date}-${s.receipt_number}`;
+    if (!receiptGroups.has(key)) {
+      receiptGroups.set(key, []);
+    }
+    receiptGroups.get(key)!.push(s);
+  });
+
+  let salesReceipts = 0;
+  let returnReceipts = 0;
+  receiptGroups.forEach(items => {
+    const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
+    if (totalQty > 0) salesReceipts++;
+    else if (totalQty < 0) returnReceipts++;
+  });
+
+  const uniqueReceipts = receiptGroups.size; // 전체 영수건수
+  const salesCount = sortedSales.filter(s => s.quantity > 0).length; // 판매건수
+  const returnCount = sortedSales.filter(s => s.quantity < 0).length; // 반품건수
+  const salesQuantity = sortedSales.filter(s => s.quantity > 0).reduce((sum, s) => sum + s.quantity, 0); // 판매수량
+  const returnQuantity = Math.abs(sortedSales.filter(s => s.quantity < 0).reduce((sum, s) => sum + s.quantity, 0)); // 반품수량
+  const totalDiscount = sortedSales.reduce((sum, s) => sum + (s.discount_amount || 0), 0); // 할인금액
+  const totalRevenue = sortedSales.reduce((sum, s) => sum + s.total_amount, 0); // 총판매액
+  const actualRevenue = totalRevenue - totalDiscount; // 실판매액 = 총판매액 - 할인금액
 
   // 페이지네이션
   const totalPages = Math.ceil(sortedSales.length / itemsPerPage);
@@ -300,18 +349,53 @@ export default function Sales() {
         {viewMode === 'list' && (
           <div className="h-full flex flex-col">
             {/* 통계 카드 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-shrink-0">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4 flex-shrink-0">
+              {/* 1. 판매/반품 영수건수 */}
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-                <p className="text-gray-400 text-xs mb-1">총 판매 건수</p>
-                <p className="text-white text-2xl font-bold">{filteredSales.length}건</p>
+                <p className="text-gray-400 text-xs mb-1">판매/반품 영수건수</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-blue-400 text-2xl font-bold">{salesReceipts.toLocaleString()}</p>
+                  <span className="text-gray-500 text-lg">/</span>
+                  <p className="text-red-400 text-2xl font-bold">{returnReceipts.toLocaleString()}</p>
+                </div>
               </div>
+
+              {/* 2. 판매/반품건수 */}
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-                <p className="text-gray-400 text-xs mb-1">총 판매 수량</p>
-                <p className="text-white text-2xl font-bold">{totalQuantity.toLocaleString()}개</p>
+                <p className="text-gray-400 text-xs mb-1">판매/반품건수</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-blue-400 text-2xl font-bold">{salesCount.toLocaleString()}</p>
+                  <span className="text-gray-500 text-lg">/</span>
+                  <p className="text-red-400 text-2xl font-bold">{returnCount.toLocaleString()}</p>
+                </div>
               </div>
+
+              {/* 3. 판매/반품수량 */}
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-                <p className="text-gray-400 text-xs mb-1">총 판매액</p>
-                <p className="text-green-400 text-2xl font-bold">{totalRevenue.toLocaleString()}원</p>
+                <p className="text-gray-400 text-xs mb-1">판매/반품수량</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-blue-400 text-2xl font-bold">{salesQuantity.toLocaleString()}</p>
+                  <span className="text-gray-500 text-lg">/</span>
+                  <p className="text-red-400 text-2xl font-bold">{returnQuantity.toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* 4. 할인금액 */}
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                <p className="text-gray-400 text-xs mb-1">할인금액</p>
+                <p className="text-orange-400 text-2xl font-bold">-{totalDiscount.toLocaleString()}원</p>
+              </div>
+
+              {/* 5. 실판매액 */}
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                <p className="text-gray-400 text-xs mb-1">실판매액</p>
+                <p className="text-green-400 text-2xl font-bold">{actualRevenue.toLocaleString()}원</p>
+              </div>
+
+              {/* 6. 총판매액 */}
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                <p className="text-gray-400 text-xs mb-1">총판매액</p>
+                <p className="text-emerald-400 text-2xl font-bold">{totalRevenue.toLocaleString()}원</p>
               </div>
             </div>
 

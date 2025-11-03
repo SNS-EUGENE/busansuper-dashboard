@@ -30,7 +30,7 @@ export default function Products() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isExcelUploadOpen, setIsExcelUploadOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [sortField, setSortField] = useState<keyof Product | null>(null);
+  const [sortField, setSortField] = useState<keyof Product | 'stock_rate' | 'stock_status' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(30); // 한 페이지에 30개씩
@@ -77,7 +77,7 @@ export default function Products() {
     }
   };
 
-  const handleSort = (field: keyof Product) => {
+  const handleSort = (field: keyof Product | 'stock_rate' | 'stock_status') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -111,8 +111,27 @@ export default function Products() {
     .sort((a, b) => {
       if (!sortField) return 0;
 
-      const aVal = a[sortField];
-      const bVal = b[sortField];
+      let aVal: any;
+      let bVal: any;
+
+      // 재고율 정렬
+      if (sortField === 'stock_rate') {
+        aVal = getStockRate(a);
+        bVal = getStockRate(b);
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      // 상태 정렬 (out < low < normal 순서)
+      if (sortField === 'stock_status') {
+        const statusOrder = { out: 0, low: 1, normal: 2 };
+        aVal = statusOrder[getStockStatus(a).status as keyof typeof statusOrder];
+        bVal = statusOrder[getStockStatus(b).status as keyof typeof statusOrder];
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      // 기존 필드 정렬
+      aVal = a[sortField as keyof Product];
+      bVal = b[sortField as keyof Product];
 
       if (aVal === null || aVal === undefined) return 1;
       if (bVal === null || bVal === undefined) return -1;
@@ -273,8 +292,20 @@ export default function Products() {
                   >
                     현재재고 {sortField === 'current_stock' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-300 whitespace-nowrap" style={{ minWidth: '80px' }}>재고율</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-300 whitespace-nowrap" style={{ minWidth: '100px' }}>상태</th>
+                  <th
+                    onClick={() => handleSort('stock_rate')}
+                    className="px-6 py-4 text-center text-sm font-bold text-gray-300 cursor-pointer hover:bg-gray-600 transition whitespace-nowrap"
+                    style={{ minWidth: '80px' }}
+                  >
+                    재고율 {sortField === 'stock_rate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th
+                    onClick={() => handleSort('stock_status')}
+                    className="px-6 py-4 text-center text-sm font-bold text-gray-300 cursor-pointer hover:bg-gray-600 transition whitespace-nowrap"
+                    style={{ minWidth: '100px' }}
+                  >
+                    상태 {sortField === 'stock_status' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th className="px-6 py-4 text-center text-sm font-bold text-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>작업</th>
                 </tr>
               </thead>

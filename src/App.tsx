@@ -6,6 +6,7 @@ import Vendors from './pages/Vendors';
 import InventoryChanges from './pages/InventoryChanges';
 import Sales from './pages/Sales';
 import Settlements from './pages/Settlements';
+import Analysis from './pages/Analysis';
 import { AlertProvider } from './contexts/AlertContext';
 
 function App() {
@@ -20,7 +21,7 @@ function App() {
             <Route path="inventory-changes" element={<InventoryChanges />} />
             <Route path="sales" element={<Sales />} />
             <Route path="settlements" element={<Settlements />} />
-            <Route path="analysis" element={<div className="text-white">데이터 분석 (개발 예정)</div>} />
+            <Route path="analysis" element={<Analysis />} />
           </Route>
         </Routes>
       </BrowserRouter>

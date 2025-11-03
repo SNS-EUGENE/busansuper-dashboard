@@ -25,7 +25,7 @@ export default function InventoryChangeForm({ onSuccess, onCancel }: InventoryCh
     product_id: '',
     product_name: '',
     current_stock: 0,
-    change_type: 'in' as 'in' | 'out' | 'adjust',
+    change_type: 'in' as 'in' | 'sale' | 'out' | 'adjust',
     quantity: 0,
     note: '',
   });
@@ -81,9 +81,9 @@ export default function InventoryChangeForm({ onSuccess, onCancel }: InventoryCh
     setLoading(true);
 
     try {
-      // 수량 계산 (입고: +, 출고: -, 조정: 절대값)
+      // 수량 계산 (입고: +, 판매: -, 출고: -, 조정: 절대값)
       let actualQuantity = formData.quantity;
-      if (formData.change_type === 'out') {
+      if (formData.change_type === 'sale' || formData.change_type === 'out') {
         actualQuantity = -Math.abs(formData.quantity);
       } else if (formData.change_type === 'in') {
         actualQuantity = Math.abs(formData.quantity);
@@ -94,7 +94,7 @@ export default function InventoryChangeForm({ onSuccess, onCancel }: InventoryCh
         // 조정: 절대값으로 설정
         newStock = formData.quantity;
       } else {
-        // 입출고: 현재 재고에 더하기/빼기
+        // 입고/판매/출고: 현재 재고에 더하기/빼기
         newStock = formData.current_stock + actualQuantity;
       }
 
@@ -188,7 +188,7 @@ export default function InventoryChangeForm({ onSuccess, onCancel }: InventoryCh
         <label className="block text-sm font-bold text-gray-300 mb-2">
           변동 타입 <span className="text-red-400">*</span>
         </label>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <button
             type="button"
             onClick={() => setFormData({ ...formData, change_type: 'in' })}
@@ -199,6 +199,17 @@ export default function InventoryChangeForm({ onSuccess, onCancel }: InventoryCh
             }`}
           >
             ➕ 입고
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, change_type: 'sale' })}
+            className={`py-3 px-4 rounded-lg font-bold transition ${
+              formData.change_type === 'sale'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            💰 판매
           </button>
           <button
             type="button"
@@ -225,7 +236,8 @@ export default function InventoryChangeForm({ onSuccess, onCancel }: InventoryCh
         </div>
         <p className="text-gray-400 text-sm mt-2">
           {formData.change_type === 'in' && '• 입고: 재고를 추가합니다'}
-          {formData.change_type === 'out' && '• 출고: 재고를 차감합니다'}
+          {formData.change_type === 'sale' && '• 판매: 판매로 인한 재고 차감입니다'}
+          {formData.change_type === 'out' && '• 출고: 반품, 폐기 등으로 재고를 차감합니다'}
           {formData.change_type === 'adjust' && '• 조정: 재고를 입력한 수량으로 정확히 설정합니다'}
         </p>
       </div>

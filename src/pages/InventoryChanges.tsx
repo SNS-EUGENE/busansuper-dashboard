@@ -7,7 +7,7 @@ import { useAlert } from '../contexts/AlertContext';
 interface InventoryChange {
   id: string;
   product_id: string;
-  change_type: 'in' | 'out' | 'adjust';
+  change_type: 'in' | 'sale' | 'out' | 'adjust';
   quantity: number;
   previous_stock: number;
   new_stock: number;
@@ -24,7 +24,7 @@ export default function InventoryChanges() {
   const [changes, setChanges] = useState<InventoryChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'in' | 'out' | 'adjust'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'in' | 'sale' | 'out' | 'adjust'>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(30);
@@ -62,6 +62,8 @@ export default function InventoryChanges() {
     switch (type) {
       case 'in':
         return { label: '입고', color: 'text-green-400', bg: 'bg-green-900/50' };
+      case 'sale':
+        return { label: '판매', color: 'text-blue-400', bg: 'bg-blue-900/50' };
       case 'out':
         return { label: '출고', color: 'text-red-400', bg: 'bg-red-900/50' };
       case 'adjust':
@@ -147,6 +149,16 @@ export default function InventoryChanges() {
             }`}
           >
             입고
+          </button>
+          <button
+            onClick={() => setFilterType('sale')}
+            className={`px-4 py-2 rounded-lg font-medium transition ${
+              filterType === 'sale'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            판매
           </button>
           <button
             onClick={() => setFilterType('out')}
