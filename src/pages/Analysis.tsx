@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import TabTransition from '../components/ui/TabTransition';
 import {
   LineChart,
   Line,
@@ -19,9 +20,19 @@ import {
 type TabType = 'sales' | 'products' | 'payments' | 'settlements';
 type PeriodType = '7days' | '30days' | '90days' | 'all';
 
+// Y축 포맷터 함수 (만원 단위)
+const formatYAxis = (value: number) => {
+  return (value / 10000).toLocaleString();
+};
+
+// Y축 포맷터 함수 (천단위 쉼표)
+const formatYAxisWithComma = (value: number) => {
+  return value.toLocaleString();
+};
+
 export default function Analysis() {
   const [activeTab, setActiveTab] = useState<TabType>('sales');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState<PeriodType>('30days');
 
   // 판매 분석 데이터
@@ -51,24 +62,35 @@ export default function Analysis() {
 
       // 기간 계산
       const today = new Date();
-      let startDate = new Date();
+      let startDate: Date;
 
       switch (period) {
         case '7days':
+          startDate = new Date();
           startDate.setDate(today.getDate() - 7);
           break;
         case '30days':
+          startDate = new Date();
           startDate.setDate(today.getDate() - 30);
           break;
         case '90days':
+          startDate = new Date();
           startDate.setDate(today.getDate() - 90);
           break;
         case 'all':
           startDate = new Date('2000-01-01');
           break;
+        default:
+          startDate = new Date();
+          startDate.setDate(today.getDate() - 30);
       }
 
       const startDateStr = startDate.toISOString().split('T')[0];
+
+      console.log('=== 판매 분석 데이터 조회 ===');
+      console.log('기간:', period);
+      console.log('시작일:', startDateStr);
+      console.log('오늘:', today.toISOString().split('T')[0]);
 
       // 판매 데이터 조회
       const { data: sales, error } = await supabase
@@ -76,6 +98,12 @@ export default function Analysis() {
         .select('sale_date, total_amount, discount_amount, quantity')
         .gte('sale_date', startDateStr)
         .order('sale_date', { ascending: true });
+
+      console.log('조회된 데이터 건수:', sales?.length || 0);
+      if (sales && sales.length > 0) {
+        console.log('첫 번째 데이터:', sales[0]);
+        console.log('마지막 데이터:', sales[sales.length - 1]);
+      }
 
       if (error) throw error;
 
@@ -277,14 +305,6 @@ export default function Analysis() {
     return startDate.toISOString().split('T')[0];
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -293,97 +313,107 @@ export default function Analysis() {
         <p className="text-gray-400 text-sm">매출 및 판매 데이터 분석</p>
       </div>
 
-      {/* 탭 메뉴 */}
-      <div className="flex bg-gray-800 border border-gray-700 rounded-lg p-1">
-        <button
-          onClick={() => setActiveTab('sales')}
-          className={`px-6 py-3 rounded-lg transition font-bold ${
-            activeTab === 'sales'
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          판매 분석
-        </button>
-        <button
-          onClick={() => setActiveTab('products')}
-          className={`px-6 py-3 rounded-lg transition font-bold ${
-            activeTab === 'products'
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          상품 분석
-        </button>
-        <button
-          onClick={() => setActiveTab('payments')}
-          className={`px-6 py-3 rounded-lg transition font-bold ${
-            activeTab === 'payments'
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          결제 분석
-        </button>
-        <button
-          onClick={() => setActiveTab('settlements')}
-          className={`px-6 py-3 rounded-lg transition font-bold ${
-            activeTab === 'settlements'
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          정산 분석
-        </button>
+      {/* 탭 메뉴 및 기간 필터 */}
+      <div className="flex items-center justify-between gap-4">
+        {/* 메인 탭 */}
+        <div className="flex bg-gray-800 border border-gray-700 rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab('sales')}
+            className={`px-6 py-3 rounded-lg transition font-bold ${
+              activeTab === 'sales'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            판매 분석
+          </button>
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`px-6 py-3 rounded-lg transition font-bold ${
+              activeTab === 'products'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            상품 분석
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`px-6 py-3 rounded-lg transition font-bold ${
+              activeTab === 'payments'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            결제 분석
+          </button>
+          <button
+            onClick={() => setActiveTab('settlements')}
+            className={`px-6 py-3 rounded-lg transition font-bold ${
+              activeTab === 'settlements'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            정산 분석
+          </button>
+        </div>
+
+        {/* 기간 필터 */}
+        <div className="flex bg-gray-800 border border-gray-700 rounded-lg p-1">
+          <button
+            onClick={() => setPeriod('7days')}
+            className={`px-6 py-3 rounded-lg transition font-bold ${
+              period === '7days'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            최근 7일
+          </button>
+          <button
+            onClick={() => setPeriod('30days')}
+            className={`px-6 py-3 rounded-lg transition font-bold ${
+              period === '30days'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            최근 30일
+          </button>
+          <button
+            onClick={() => setPeriod('90days')}
+            className={`px-6 py-3 rounded-lg transition font-bold ${
+              period === '90days'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            최근 90일
+          </button>
+          <button
+            onClick={() => setPeriod('all')}
+            className={`px-6 py-3 rounded-lg transition font-bold ${
+              period === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            전체
+          </button>
+        </div>
       </div>
 
-      {/* 판매 분석 탭 */}
-      {activeTab === 'sales' && (
+      {/* 로딩 상태 */}
+      {loading ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <TabTransition activeKey={activeTab}>
+          {/* 판매 분석 탭 */}
+          {activeTab === 'sales' && (
         <div className="space-y-6">
-          {/* 기간 선택 */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPeriod('7days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '7days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 7일
-            </button>
-            <button
-              onClick={() => setPeriod('30days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '30days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 30일
-            </button>
-            <button
-              onClick={() => setPeriod('90days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '90days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 90일
-            </button>
-            <button
-              onClick={() => setPeriod('all')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              전체
-            </button>
-          </div>
-
           {/* 통계 카드 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
@@ -413,7 +443,11 @@ export default function Analysis() {
               <LineChart data={dailySales}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="날짜" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
+                <YAxis
+                  stroke="#9CA3AF"
+                  tickFormatter={formatYAxis}
+                  label={{ value: '단위: 만원', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#1F2937',
@@ -421,6 +455,8 @@ export default function Analysis() {
                     borderRadius: '8px',
                     color: '#fff',
                   }}
+                  cursor={false}
+                  formatter={(value: number) => value.toLocaleString() + '원'}
                 />
                 <Legend />
                 <Line
@@ -429,7 +465,7 @@ export default function Analysis() {
                   stroke="#10B981"
                   strokeWidth={2}
                   dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
+                  activeDot={{ r: 8, stroke: '#10B981', strokeWidth: 2, fill: '#10B981' }}
                 />
                 <Line
                   type="monotone"
@@ -437,6 +473,7 @@ export default function Analysis() {
                   stroke="#F59E0B"
                   strokeWidth={2}
                   dot={{ r: 4 }}
+                  activeDot={{ r: 8, stroke: '#F59E0B', strokeWidth: 2, fill: '#F59E0B' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -449,7 +486,11 @@ export default function Analysis() {
               <BarChart data={dailySales}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="날짜" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
+                <YAxis
+                  stroke="#9CA3AF"
+                  tickFormatter={formatYAxis}
+                  label={{ value: '단위: 만원', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#1F2937',
@@ -457,10 +498,22 @@ export default function Analysis() {
                     borderRadius: '8px',
                     color: '#fff',
                   }}
+                  cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                  formatter={(value: number) => value.toLocaleString() + '원'}
                 />
                 <Legend />
-                <Bar dataKey="매출액" fill="#3B82F6" />
-                <Bar dataKey="실매출액" fill="#10B981" />
+                <Bar
+                  dataKey="매출액"
+                  fill="#3B82F6"
+                  name="매출액"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="실매출액"
+                  fill="#10B981"
+                  name="실매출액"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -470,58 +523,18 @@ export default function Analysis() {
       {/* 상품 분석 탭 */}
       {activeTab === 'products' && (
         <div className="space-y-6">
-          {/* 기간 선택 */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPeriod('7days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '7days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 7일
-            </button>
-            <button
-              onClick={() => setPeriod('30days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '30days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 30일
-            </button>
-            <button
-              onClick={() => setPeriod('90days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '90days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 90일
-            </button>
-            <button
-              onClick={() => setPeriod('all')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              전체
-            </button>
-          </div>
-
           {/* 인기 상품 TOP 20 */}
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
             <h2 className="text-xl font-bold text-white mb-4">인기 상품 TOP 20 (매출액 기준)</h2>
-            <ResponsiveContainer width="100%" height={600}>
-              <BarChart data={topProducts} layout="horizontal">
+            <ResponsiveContainer width="100%" height={500}>
+              <BarChart data={topProducts}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis type="number" stroke="#9CA3AF" />
-                <YAxis type="category" dataKey="상품명" stroke="#9CA3AF" width={150} />
+                <XAxis dataKey="상품명" stroke="#9CA3AF" angle={-45} textAnchor="end" height={100} />
+                <YAxis
+                  stroke="#9CA3AF"
+                  tickFormatter={formatYAxis}
+                  label={{ value: '단위: 만원', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#1F2937',
@@ -529,9 +542,16 @@ export default function Analysis() {
                     borderRadius: '8px',
                     color: '#fff',
                   }}
+                  cursor={{ fill: 'rgba(16, 185, 129, 0.1)' }}
+                  formatter={(value: number) => value.toLocaleString() + '원'}
                 />
                 <Legend />
-                <Bar dataKey="매출액" fill="#10B981" />
+                <Bar
+                  dataKey="매출액"
+                  fill="#10B981"
+                  name="매출액"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -539,11 +559,15 @@ export default function Analysis() {
           {/* 판매량 TOP 20 */}
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
             <h2 className="text-xl font-bold text-white mb-4">인기 상품 TOP 20 (판매량 기준)</h2>
-            <ResponsiveContainer width="100%" height={600}>
-              <BarChart data={topProducts} layout="horizontal">
+            <ResponsiveContainer width="100%" height={500}>
+              <BarChart data={[...topProducts].sort((a, b) => b.판매량 - a.판매량)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis type="number" stroke="#9CA3AF" />
-                <YAxis type="category" dataKey="상품명" stroke="#9CA3AF" width={150} />
+                <XAxis dataKey="상품명" stroke="#9CA3AF" angle={-45} textAnchor="end" height={100} />
+                <YAxis
+                  stroke="#9CA3AF"
+                  tickFormatter={formatYAxisWithComma}
+                  label={{ value: '단위: 개', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#1F2937',
@@ -551,9 +575,16 @@ export default function Analysis() {
                     borderRadius: '8px',
                     color: '#fff',
                   }}
+                  cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                  formatter={(value: number) => value.toLocaleString() + '개'}
                 />
                 <Legend />
-                <Bar dataKey="판매량" fill="#3B82F6" />
+                <Bar
+                  dataKey="판매량"
+                  fill="#3B82F6"
+                  name="판매량"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -563,50 +594,6 @@ export default function Analysis() {
       {/* 결제 분석 탭 */}
       {activeTab === 'payments' && (
         <div className="space-y-6">
-          {/* 기간 선택 */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPeriod('7days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '7days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 7일
-            </button>
-            <button
-              onClick={() => setPeriod('30days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '30days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 30일
-            </button>
-            <button
-              onClick={() => setPeriod('90days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '90days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 90일
-            </button>
-            <button
-              onClick={() => setPeriod('all')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              전체
-            </button>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 결제수단별 매출 파이차트 */}
             <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
@@ -634,6 +621,7 @@ export default function Analysis() {
                       borderRadius: '8px',
                       color: '#fff',
                     }}
+                    formatter={(value: number) => value.toLocaleString() + '원'}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -646,7 +634,11 @@ export default function Analysis() {
                 <BarChart data={paymentStats}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="결제수단" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
+                  <YAxis
+                    stroke="#9CA3AF"
+                    tickFormatter={formatYAxis}
+                    label={{ value: '단위: 만원', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                  />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#1F2937',
@@ -654,9 +646,16 @@ export default function Analysis() {
                       borderRadius: '8px',
                       color: '#fff',
                     }}
+                    cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                    formatter={(value: number) => value.toLocaleString() + '원'}
                   />
                   <Legend />
-                  <Bar dataKey="매출액" fill="#3B82F6" />
+                  <Bar
+                    dataKey="매출액"
+                    fill="#3B82F6"
+                    name="매출액"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -667,50 +666,6 @@ export default function Analysis() {
       {/* 정산 분석 탭 */}
       {activeTab === 'settlements' && (
         <div className="space-y-6">
-          {/* 기간 선택 */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPeriod('7days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '7days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 7일
-            </button>
-            <button
-              onClick={() => setPeriod('30days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '30days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 30일
-            </button>
-            <button
-              onClick={() => setPeriod('90days')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === '90days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              최근 90일
-            </button>
-            <button
-              onClick={() => setPeriod('all')}
-              className={`px-4 py-2 rounded-lg transition ${
-                period === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
-              }`}
-            >
-              전체
-            </button>
-          </div>
-
           {/* 업체별 정산 금액 */}
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
             <h2 className="text-xl font-bold text-white mb-4">업체별 정산 금액</h2>
@@ -718,7 +673,11 @@ export default function Analysis() {
               <BarChart data={settlementStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="업체명" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
+                <YAxis
+                  stroke="#9CA3AF"
+                  tickFormatter={formatYAxis}
+                  label={{ value: '단위: 만원', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#1F2937',
@@ -726,10 +685,22 @@ export default function Analysis() {
                     borderRadius: '8px',
                     color: '#fff',
                   }}
+                  cursor={{ fill: 'rgba(16, 185, 129, 0.1)' }}
+                  formatter={(value: number) => value.toLocaleString() + '원'}
                 />
                 <Legend />
-                <Bar dataKey="정산금액" fill="#10B981" />
-                <Bar dataKey="수수료" fill="#F59E0B" />
+                <Bar
+                  dataKey="정산금액"
+                  fill="#10B981"
+                  name="정산금액"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="수수료"
+                  fill="#F59E0B"
+                  name="수수료"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -756,6 +727,8 @@ export default function Analysis() {
             </div>
           </div>
         </div>
+      )}
+        </TabTransition>
       )}
     </div>
   );

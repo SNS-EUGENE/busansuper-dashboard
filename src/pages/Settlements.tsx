@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import Modal from '../components/ui/Modal';
+import TabTransition from '../components/ui/TabTransition';
 import SettlementForm from '../features/settlements/SettlementForm';
 import CardCompanyManager from '../features/settlements/CardCompanyManager';
 import { useAlert } from '../contexts/AlertContext';
@@ -188,33 +189,33 @@ export default function Settlements() {
       {/* 필터 */}
       <div className="mb-4 flex gap-3 flex-wrap flex-shrink-0">
         {/* 상태 필터 */}
-        <div className="flex gap-2">
+        <div className="flex bg-gray-800 border border-gray-700 rounded-lg p-1">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
+            className={`px-6 py-3 rounded-lg transition font-bold ${
               filterStatus === 'all'
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             전체
           </button>
           <button
             onClick={() => setFilterStatus('pending')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
+            className={`px-6 py-3 rounded-lg transition font-bold ${
               filterStatus === 'pending'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             대기
           </button>
           <button
             onClick={() => setFilterStatus('completed')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
+            className={`px-6 py-3 rounded-lg transition font-bold ${
               filterStatus === 'completed'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             완료
@@ -231,8 +232,9 @@ export default function Settlements() {
         />
       </div>
 
-      {/* 정산 내역 목록 (유동적) */}
-      {filteredSettlements.length === 0 ? (
+      <TabTransition activeKey={filterStatus}>
+        {/* 정산 내역 목록 (유동적) */}
+        {filteredSettlements.length === 0 ? (
         <div className="bg-gray-800 rounded-lg p-12 border border-gray-700 text-center">
           <p className="text-4xl mb-4">💳</p>
           <p className="text-xl text-gray-400">정산 내역이 없습니다</p>
@@ -435,6 +437,7 @@ export default function Settlements() {
           )}
         </div>
       )}
+      </TabTransition>
 
       {/* 카드사(매입사) 관리 */}
       <div className="flex-shrink-0">

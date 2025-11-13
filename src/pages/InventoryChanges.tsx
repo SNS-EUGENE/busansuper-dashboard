@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import Modal from '../components/ui/Modal';
+import TabTransition from '../components/ui/TabTransition';
 import InventoryChangeForm from '../features/inventory/InventoryChangeForm';
 import { useAlert } from '../contexts/AlertContext';
 
@@ -129,53 +130,53 @@ export default function InventoryChanges() {
       {/* 필터 */}
       <div className="mb-4 flex gap-3 flex-wrap flex-shrink-0">
         {/* 타입 필터 */}
-        <div className="flex gap-2">
+        <div className="flex bg-gray-800 border border-gray-700 rounded-lg p-1">
           <button
             onClick={() => setFilterType('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
+            className={`px-6 py-3 rounded-lg transition font-bold ${
               filterType === 'all'
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             전체
           </button>
           <button
             onClick={() => setFilterType('in')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
+            className={`px-6 py-3 rounded-lg transition font-bold ${
               filterType === 'in'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             입고
           </button>
           <button
             onClick={() => setFilterType('sale')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
+            className={`px-6 py-3 rounded-lg transition font-bold ${
               filterType === 'sale'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             판매
           </button>
           <button
             onClick={() => setFilterType('out')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
+            className={`px-6 py-3 rounded-lg transition font-bold ${
               filterType === 'out'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             출고
           </button>
           <button
             onClick={() => setFilterType('adjust')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
+            className={`px-6 py-3 rounded-lg transition font-bold ${
               filterType === 'adjust'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             조정
@@ -192,8 +193,9 @@ export default function InventoryChanges() {
         />
       </div>
 
-      {/* 변동 내역 목록 (유동적) */}
-      {filteredChanges.length === 0 ? (
+      <TabTransition activeKey={filterType}>
+        {/* 변동 내역 목록 (유동적) */}
+        {filteredChanges.length === 0 ? (
         <div className="bg-gray-800 rounded-lg p-12 border border-gray-700 text-center">
           <p className="text-4xl mb-4">📋</p>
           <p className="text-xl text-gray-400">재고 변동 내역이 없습니다</p>
@@ -379,6 +381,7 @@ export default function InventoryChanges() {
           )}
         </div>
       )}
+      </TabTransition>
 
       {/* 재고 변동 기록 모달 */}
       <Modal

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import Modal from '../components/ui/Modal';
+import TabTransition from '../components/ui/TabTransition';
 import SaleForm from '../features/sales/SaleForm';
 import ReceiptDetailUpload from '../features/sales/ReceiptDetailUpload';
 import ApprovalUpload from '../features/sales/ApprovalUploadOptimized';
@@ -331,22 +332,23 @@ export default function Sales() {
 
       {/* 컨텐츠 영역 */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {/* 영수증 업로드 모드 */}
-        {viewMode === 'receipt' && (
-          <div className="h-full overflow-y-auto">
-            <ReceiptDetailUpload />
-          </div>
-        )}
+        <TabTransition activeKey={viewMode}>
+          {/* 영수증 업로드 모드 */}
+          {viewMode === 'receipt' && (
+            <div className="h-full overflow-y-auto">
+              <ReceiptDetailUpload />
+            </div>
+          )}
 
-        {/* 승인내역 업로드 모드 */}
-        {viewMode === 'approval' && (
-          <div className="h-full overflow-y-auto">
-            <ApprovalUpload />
-          </div>
-        )}
+          {/* 승인내역 업로드 모드 */}
+          {viewMode === 'approval' && (
+            <div className="h-full overflow-y-auto">
+              <ApprovalUpload />
+            </div>
+          )}
 
-        {/* 판매 내역 모드 */}
-        {viewMode === 'list' && (
+          {/* 판매 내역 모드 */}
+          {viewMode === 'list' && (
           <div className="h-full flex flex-col">
             {/* 통계 카드 */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4 flex-shrink-0">
@@ -720,6 +722,7 @@ export default function Sales() {
           )}
           </div>
         )}
+        </TabTransition>
       </div>
 
       {/* 판매 기록 모달 */}
