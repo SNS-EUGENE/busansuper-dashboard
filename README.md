@@ -20,6 +20,11 @@
 | **정산 관리** | 카드사별 정산, 수수료 계산, 거래처 정산 |
 | **데이터 분석** | 매출 추이, 상품별/기간별 분석 |
 
+## 스크린샷
+<img width="2536" height="1264" alt="image" src="https://github.com/user-attachments/assets/45da09d9-e86a-4140-a838-34fcc1690e5f" />
+<img width="2536" height="1264" alt="image" src="https://github.com/user-attachments/assets/29f1212e-03bc-4a2d-8166-d7c21ee0b709" />
+
+
 
 ## 빠른 시작
 
